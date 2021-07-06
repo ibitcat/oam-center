@@ -26,5 +26,14 @@ mysql -uroot -p123456 kgo_admin < kgo_admin_init.sql
 nohup ./oam-center > runtime.log &
 ```
 
+## 原理
+在每一组游服主机上运行一个被控端，通过与中央后台的 http 连接进行通信。客户端上传该机器上运行的游服进程情况，而中央后台也可以远程控制游戏服务器，例如：
+游戏服务器更新、关闭、热更等，通过减少人工操作，提高游戏维护效率。
+
+该后台需要配置被控端一起使用。
+
 ## 参考
 本项目前端参考[该项目](https://github.com/george518/PPGo_ApiAdmin)。
+
+## 截图
+![screenshot](screenshot.png)
