@@ -1,0 +1,122 @@
+{{define "content"}}
+<div class="layui-layout layui-layout-admin" style="padding-left: 20px;">
+    <div style="margin: 10px 0px">
+        <blockquote class="layui-elem-quote">
+            说明： 只有小程序版本才需要设置转发Nginx，且一个小程序平台可以有多个转发Nginx服务器，但是不能超过微信域名出口的总数上限。
+        </blockquote>
+    </div>
+
+    <div class="layui-row" style="margin-top: 20px;">
+        <div class="layui-col-xs6">
+            <button class="layui-btn" data-type="tabAdd" id="nginxAdd">新增</button>
+        </div>
+    </div>
+
+    <table class="layui-hide" id="table_list" lay-filter="table_filter">
+    </table>
+
+    <script type="text/html" id="bar">
+        <a class="layui-btn layui-btn-xs" lay-event="install">安装</a>
+        {{/*<a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>*/}}
+    </script>
+</div>
+<script>
+
+    layui.use(['table','form','element','jquery'], function(){
+        var table = layui.table;
+        var form = layui.form;
+        var element = layui.element;
+        var $ = layui.$
+
+        var error_info = "{{.flashError}}";
+        if(error_info){
+            layer.msg(error_info,{icon: 2,shade:0.3},function () {
+                window.history.go(-1)
+            })
+            return;
+        }
+
+        //方法级渲染
+        table.render({
+            elem: '#table_list'
+            ,url: '/home/nginx/table'
+            ,cols: [[
+                {field:'id', title: 'ID', align:'center',sort: true, width:100}
+                ,{field:'aid', title: '平台id', hide:true, align:'center',sort: true, width:100}
+                ,{field:'agent', title: '平台标示', align:'center', width:100}
+                ,{field:'sid', title: '起始sid', align:'center', width:100}
+                ,{field:'vps', title: 'Nginx所在vps', width:150}
+                ,{field:'domain', title: '转发域名', edit: 'text'}
+                ,{field:'ws', title: 'ws转发域名'}
+                ,{field:'single', title: 'single转发域名'}
+                ,{field:'create_time', title: '注册日期'}
+                ,{field:'status_txt', title: '状态'}
+                ,{fixed: 'right', title: '操作', align:'center', toolbar: '#bar', width:100}
+            ]]
+            ,id: 'listReload'
+            ,page: true
+        });
+
+
+        $("#nginxAdd").on("click",function() {
+            window.parent.openTab("/home/nginx/add", '新增nginx', "admin_nginx_add-0", 'fa-plus');
+        })
+
+        //监听单元格编辑
+        table.on('edit(table_filter)', function(obj){
+            var value = obj.value //得到修改后的值
+            ,data = obj.data //得到所在行所有键值
+            ,field = obj.field; //得到字段
+
+            layer.confirm("确认要修改Nginx转发域名吗？", {icon: 3, title:'提示'}, function(index){
+                layer.load(2, {shade:0.3});
+                $.post('/home/nginx/updatedomain', {"id":data.id, "domain":value}, function (out) {
+                    layer.closeAll('loading');
+                    if (out.status == 0) {
+                        var ajaxMsg = "操作成功";
+                        if (out.message) {
+                            ajaxMsg = out.message;
+                        }
+
+                        layer.msg(ajaxMsg,{icon: 1,shade:0.3,time:2000},function () {
+                            window.location.reload();
+                        })
+                    } else {
+                        layer.msg(out.message, function(){
+                            window.location.reload();
+                        });
+                        return;
+                    }
+                }, "json");
+                layer.close(index);
+            });
+            return ;
+        });
+
+        //监听工具条
+        table.on('tool(table_filter)', function(obj){
+            var data = obj.data;
+            if (obj.event === 'install'){
+                layer.confirm('确认安装【'+data.agent+'_'+data.sid +'】转发nginx吗？', function(index){
+                    var jsData = {'id':data.aid}
+                    layer.load(2, {shade:0.3});
+                    $.post('/home/nginx/install', jsData, function (out) {
+                        layer.closeAll('loading');
+                        if (out.status == 0) {
+                            layer.alert('安装转发nginx成功.', {icon: 1,shade:0.3,time:1000},function(index){
+                                layer.close(index);
+                                window.location.reload();
+                            });
+                        } else {
+                            layer.msg(out.message)
+                        }
+                    }, "json");
+                    layer.close(index);
+                });
+            } else {
+                layer.msg('操作不存在');
+            }
+        });
+    });
+</script>
+{{end}}

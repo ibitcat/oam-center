@@ -1,0 +1,167 @@
+{{define "content"}}
+<div class="layui-layout layui-layout-admin" style="padding-left: 20px;">
+    <div style="margin: 10px 0px">
+        <blockquote class="layui-elem-quote">
+            说明：
+            <br>新增平台注册成功后，点击【刷新】按钮查找该平台所有已发布的CDN版本。
+            <br>状态=<font color='orange'>【已删除】</font>，表示版本源文件已被删除
+            <br>状态=<font color='gray'>【已停止】</font>，表示CDN与服务器上资源已被删除，已停止解析CDN
+        </blockquote>
+    </div>
+
+    <div class="layui-row" style="margin-top: 20px;">
+        <div class="layui-col-xs6">
+            {{/*<button class="layui-btn batch" data-type="batchinstall">安装</button>*/}}
+            <button class="layui-btn" id="freshCdnVersion">刷新</button>
+            <button class="layui-btn" id="cleanupCdn">清理</button>
+        </div>
+
+        <div class="layui-col-xs6 search_text">
+            <form class="layui-form" action="" onsubmit="javascript:return false;">
+                <div class="demoTable">
+                    <div class="layui-inline" style="width: 40%">
+                        <input class="layui-input" name="cdn_version" id="cdn_version" autocomplete="off" placeholder="cdn版本" >
+                    </div>
+                    <button class="layui-btn" data-type="reload">查询</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <table class="layui-hide" id="table_list" lay-filter="table_filter">
+    </table>
+
+    <script type="text/html" id="bar">
+        <a class="layui-btn layui-btn-xs" lay-event="test">测试</a>
+        <a class="layui-btn layui-btn-xs" lay-event="install">安装</a>
+        <a class="layui-btn layui-btn-xs" lay-event="log">日志</a>
+        <a class="layui-btn layui-btn-xs" lay-event="notice">公告</a>
+        <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="stop">停止</a>
+    </script>
+</div>
+<script>
+
+    layui.use(['table','form','element','jquery'], function(){
+        var table = layui.table;
+        var form = layui.form;
+        var element = layui.element;
+
+        var error_info = "{{.flashError}}";
+        if(error_info){
+            layer.msg(error_info,{icon: 2,shade:0.3},function () {
+                window.history.go(-1)
+            })
+            return;
+        }
+
+        //方法级渲染
+        table.render({
+            elem: '#table_list'
+            ,url: '/home/cdn/table'
+            ,cols: [[
+                //{checkbox: true, fixed: true}
+                {field:'id', title: 'ID', align:'center', width:100}
+                ,{field:'aid',title: '平台id', hide:true, width:100}
+                ,{field:'vpsid', title: '所在vps', width:100}
+                ,{field:'version', title: 'cdn版本',sort: true, width:200}
+                ,{field:'source', title: '回源域名'}
+                ,{field:'domain', title: '正式域名'}
+                ,{field:'create_time', title: '创建日期', width:170}
+                ,{field:'status_txt', title: '状态', width:100}
+                ,{fixed: 'right', title: '操作', align:'left', toolbar: '#bar', width:270}
+            ]]
+            ,id: 'listReload'
+            ,page: true
+            ,limit:20
+            ,limits: [20,40,80]
+        });
+
+        var $ = layui.$, active = {
+            reload: function(){
+                table.reload('listReload', {
+                    where: {
+                        cdn_version: $('#cdn_version').val(),
+                    }
+                });
+            }
+        };
+
+        table.on('tool(table_filter)', function(obj){
+            var data = obj.data;
+            if (obj.event === 'notice'){
+                window.parent.openTab("/home/cdn/notice?id="+data.id, data.version+' 公告编辑', "admin_cdnnotice_edit-"+data.id, 'fa-edit');
+            }else if (obj.event === 'test') {
+                var msg = "确认安装该测试CDN吗？";
+                layer.confirm(msg, {icon: 3, title:'提示'}, function(index){
+                    layer.load(2, {shade:0.3});
+                    $.post('/home/cdn/batchinstall', {'tags':data.version, 'test':1}, function (out) {
+                        layer.closeAll('loading');
+                        layer.alert(out.message, {icon: 1,shade:0.3},function(index){
+                            window.location.reload();
+                        });
+                    }, "json");
+
+                    // 1分钟后关闭loading
+                    //setTimeout(function(){layer.closeAll('loading');}, 60000);
+                    layer.close(index);
+                });
+            }else if (obj.event === 'install') {
+                var msg = "确认安装该CDN吗？";
+                layer.confirm(msg, {icon: 3, title:'提示'}, function(index){
+                    layer.load(2, {shade:0.3});
+                    $.post('/home/cdn/batchinstall', {'tags':data.version}, function (out) {
+                        layer.closeAll('loading');
+                        layer.alert(out.message, {icon: 1,shade:0.3},function(index){
+                            window.location.reload();
+                        });
+                    }, "json");
+
+                    // 1分钟后关闭loading
+                    //setTimeout(function(){layer.closeAll('loading');}, 60000);
+                    layer.close(index);
+                });
+            }else if (obj.event === 'stop') {
+                var msg = "确认停止该CDN吗？";
+                layer.confirm(msg, {icon: 3, title:'提示'}, function(index){
+                    layer.load(2, {shade:0.3});
+                    $.post('/home/cdn/stop', {'id':data.id}, function (out) {
+                        layer.closeAll('loading');
+                        layer.alert(out.message, {icon: 1,shade:0.3},function(index){
+                            window.location.reload();
+                        });
+                    }, "json");
+                })
+            }else if (obj.event === 'log') {
+                layer.load(2, {shade:0.3});
+                $.post('/home/cdn/ajaxlog', {'id':data.id}, function (out) {
+                    layer.closeAll('loading');
+                    layer.open({title: 'cdn安装日志', area: ["50%","50%"], content: '<pre class="layui-code">'+out.message+'</pre>'});
+                }, "json");
+            } else {
+                layer.msg('操作不存在');
+            }
+        });
+
+        $("#freshCdnVersion").on("click",function() {
+            $.get("/home/cdn/fresh", function (out) {
+                layer.msg(out.message,{time:1000},function () {
+                    window.location.reload();
+                })
+            });
+        })
+
+        $("#cleanupCdn").on("click",function() {
+            $.get("/home/cdn/cleanup", function (out) {
+                layer.msg(out.message,{time:1000},function () {
+                    window.location.reload();
+                })
+            });
+        })
+
+        $('.demoTable .layui-btn').on('click', function(){
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+    });
+</script>
+{{end}}

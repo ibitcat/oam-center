@@ -1,0 +1,154 @@
+{{define "content"}}
+
+<style>
+.layui-table-cell {
+    height: inherit;
+    }
+</style>
+
+<div class="layui-layout layui-layout-admin" style="padding-left: 20px;">
+     <div style="margin: 10px 10px">
+        <blockquote class="layui-elem-quote">
+            说明：自动读取 /data/update_zip/ 目录下的所有版本文件。
+        </blockquote>
+    </div>
+
+    <div class="layui-row" style="margin-top: 20px;">
+         <div class="layui-col-xs6">
+            <div class="layui-btn-group">
+                <button class="layui-btn" id="makedir">新建目录</button>
+            </div>
+        </div>
+        <div class="layui-col-xs6 search_text">
+            <form class="layui-form" action="" onsubmit="javascript:return false;">
+                <div class="demoTable">
+                    <div class="layui-inline" style="width: 40%">
+                        <input class="layui-input" name="version_flag" id="version_flag" autocomplete="off" placeholder="版本标示" >
+                    </div>
+                    <button class="layui-btn" data-type="reload">查询</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <table class="layui-hide" id="table_list" lay-filter="table_filter">
+    </table>
+
+    <table class="layui-hide" id="table_zips" lay-filter="table_zipfiles">
+    </table>
+        <script type="text/html" id="bar1">
+        <a class="layui-btn layui-btn-xs" lay-event="upload">上传文件</a>  
+        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除目录</a>
+    </script>
+</div>
+
+<script>
+    layui.use(['table','form','element','jquery'], function(){
+        var table = layui.table;
+        var form = layui.form;
+        var element = layui.element;
+        var $ = layui.jquery;
+
+        var error_info = "{{.flashError}}";
+        if(error_info){
+            layer.msg(error_info,{icon: 2,shade:0.3},function () {
+                window.history.go(-1)
+            })
+            return;
+        }
+
+        //方法级渲染
+        table.render({
+            elem: '#table_list'
+            ,url: '/home/version/table'
+            ,cols: [[
+                    {field:'id', title: 'ID', align:'center', width:150,  rowspan: 2}
+                    ,{field:'flag',title: '版本标示', sort: true, rowspan: 2}
+                    ,{title: '文件列表', align: 'center', colspan: 2}
+                    ,{field:'create_time', title: '创建日期',  rowspan: 2, width:250}
+                    ,{fixed: 'right', title: '操作', align:'left', toolbar: '#bar1', width:160, rowspan: 2}
+                ]
+                ,[
+                    {field: 'zips', title: 'zip文件'}
+                    ,{field: 'sizes', title: '大小'}
+                ]
+            ]
+            ,id: 'listReload'
+            ,page: true
+            ,limit: 5
+            ,limits: [5,10]
+        });
+
+        // 版本查询
+        var $ = layui.$, active = {
+            reload: function(){
+                table.reload('listReload', {
+                    where: {
+                        version_flag: $('#version_flag').val(),
+                    }
+                });
+            }
+        };
+        $('.demoTable .layui-btn').on('click', function(){
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+        $("#makedir").on("click",function() {
+          var index = layer.prompt({
+              formType: 0,
+              title: '新建目录',
+            }, function(value, index, elem){
+                var jsData = {'dir':value}
+                $.post('/home/version/makedir', jsData, function (out) {
+                    layer.closeAll('loading');
+                    if (out.status == 0) {
+                        layer.alert('创建成功', {icon: 1,shade:0.3,time:1000},function(index){
+                            layer.close(index);
+                            window.location.reload();
+                        });
+                    } else {
+                        layer.msg(out.message)
+                    }
+                }, "json");
+              layer.close(index);
+            });
+        });
+
+
+        table.on('tool(table_filter)', function(obj){
+            var data = obj.data;
+            var flag = data.flag;
+            if (obj.event==='del'){
+                layer.confirm('真的删除【'+flag+'】目录吗？', function(index){
+                    layer.load(2, {shade:0.3});
+                    var jsData = {'flag':data.flag}
+                    $.post('/home/version/delfile', jsData, function (out) {
+                        layer.closeAll('loading');
+                        if (out.status == 0) {
+                            layer.alert('删除成功', {icon: 1,shade:0.3,time:1000},function(index){
+                                layer.close(index);
+                                window.location.reload();
+                            });
+                        } else {
+                            layer.msg(out.message)
+                        }
+                    }, "json");
+                    layer.close(index);
+                });
+            }else if(obj.event==='upload'){
+              var index = layer.open({
+                title: "文件上传",
+                type: 2,
+                area: ['600px', '500px'],
+                content: ("/home/version/upload?dir="+data.flag),
+                success: function(index, layero) {
+                  form.render();
+                },
+              });
+            }else{
+                layer.msg('操作不存在');
+            }
+        });
+    });
+</script>
+{{end}}

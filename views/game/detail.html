@@ -1,0 +1,341 @@
+{{define "content"}}
+
+<style>
+    .layui-form-item{
+        margin-bottom: 0px;
+    }
+    legend{
+        font-size: 14px !important;
+        color: #009688;
+        font-weight: bold !important;
+    }
+</style>
+
+
+<div class="layui-layout layui-layout-admin" style="padding-left: 40px;margin-top: 20px;padding-right: 10px;">
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>{{.game.Name}}（#{{.game.Sid}}）游服详细</legend>
+    </fieldset>
+
+    <table class="layui-table" lay-skin="nob" lay-size="sm">
+        <colgroup>
+            <col width="150">
+            <col width="300">
+            <col width="150">
+            <col width="300">
+            <col>
+        </colgroup>
+
+        <tbody>
+        <tr>
+            <td>游服名称</td>
+            <td>{{.game.Name}}</td>
+            <td>游服id</td>
+            <td>{{.game.Sid}}</td>
+            <td></td>
+        </tr>
+
+        <tr>
+            <td>游服模式</td>
+            <td>{{if gt .game.Sid 10000}}外测{{else}}正式{{end}}</td>
+            <td>状态</td>
+            <td>{{.gameStatus}}</td>
+            <td></td>
+        </tr>
+
+        <tr>
+            <td>平台标示</td>
+            <td>{{.agent.Flag}}</td>
+            <td>平台名称</td>
+            <td>{{.agent.Name}}</td>
+            <td></td>
+        </tr>
+
+        <tr>
+            <td>游服序号</td>
+            <td>{{.game.Serial}}</td>
+            <td>是否是小程序</td>
+            <td>{{if eq .agent.Miniapp 1}}<font color='green'>是</font>{{else}}<font color='red'>否</font>{{end}}</td>
+            <td></td>
+        </tr>
+
+        <tr>
+            <td>所在vps</td>
+            <td>{{.game.Vpsid}}</td>
+            <td>vps IP</td>
+            <td>{{.vps.Ip}}</td>
+            <td></td>
+        </tr>
+
+        <tr>
+            <td>注册时间</td>
+            <td>{{.createTime}}</td>
+            <td>开服时间</td>
+            <td>{{.openTime}}</td>
+            <td></td>
+        </tr>
+
+        <tr>
+            <td>游服端口</td>
+            <td>{{.game.Port}}</td>
+            <td>数据库端口</td>
+            <td>{{.game.DbPort}}</td>
+            <td></td>
+        </tr>
+
+        <tr>
+            <td>是否共享数据库</td>
+            <td>{{if eq .game.DbShare 0}}<font color='red'>否</font>{{else}}<font color='green'>是</font>{{end}}</td>
+            <td>被共享的游服标示</td>
+            <td>{{.dbShareFlag}}</td>
+            <td></td>
+        </tr>
+
+        <tr>
+            <td>是否走TLS</td>
+            <td>{{if eq .game.IsTls 0}}<font color='red'>否</font>{{else}}<font color='green'>是</font>{{end}}</td>
+            <td>游服域名</td>
+            <td>{{.game.Domain}}</td>
+            <td></td>
+        </tr>
+
+        <tr>
+            <td>游服ws入口</td>
+            <td>{{.game.Ws}}</td>
+            <td>游服single入口</td>
+            <td>{{.game.Single}}</td>
+            <td></td>
+        </tr>
+
+        <tr>
+            <td>客户端模式</td>
+            <td>{{index .modeGroup .game.Mode}}</td>
+            <td>运行中的进程</td>
+            <td>{{.game.Procs}}</td>
+            <td></td>
+            <td></td>
+        </tr>
+
+        <tr>
+            <td>转发nginx Id</td>
+            <td>{{.game.NginxId}}</td>
+            <td>转发nginx 域名</td>
+            <td>{{.nginx.Domain}}</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>是否导入其他服数据</td>
+            <td>{{if eq .game.Mid 0}}<font color='red'>否</font>{{else}}<font color='green'>是</font>{{end}}</td>
+            <td>源服ID</td>
+            <td>{{if eq .game.Mid 0}}<font color='green'>无</font>{{else}}{{.game.Mid}}{{end}}</td>
+            <td></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <input type="hidden" name="id" id="id" value="{{.game.Id}}">
+</div>
+
+<div class="layui-layout layui-layout-admin" style="padding-left: 40px;margin-top: 20px;padding-right: 10px;">
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>更新服务器</legend>
+    </fieldset>
+
+    <div class="layui-layout layui-layout-admin" style="padding-left: 0px;margin-top: 20px;">
+        <form class="layui-form" action="" method="post" >
+            <div class="layui-form-item">
+                <label class="layui-form-label" style="text-align: left;">更新版本</label>
+                <div class="layui-input-inline">
+                    <select name="game_version" lay-verify="required">
+                    {{range $k, $v := .versionGroup}}
+                        <option value="{{$v}}">{{$v}}</option>
+                    {{end}}
+                    </select>
+                </div>
+                <div class="layui-form-mid layui-word-aux"></div>
+                <button class="layui-btn" lay-submit="" lay-filter="sub">更新</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="layui-layout layui-layout-admin" style="padding-left: 0px;margin-top: 20px;">
+        <form class="layui-form" action="" method="post" >
+            <div class="layui-form-item">
+                <label class="layui-form-label" style="text-align: left;">更新模式</label>
+                <div class="layui-input-inline">
+                    <select name="game_mode" lay-verify="required">
+                    {{$curMode := .game.Mode}}
+                    {{range $k, $v := .modeGroup}}
+                        <option value="{{$k}}" {{if eq $k $curMode}}selected{{end}}>{{$v}}</option>
+                    {{end}}
+                    </select>
+                </div>
+                <div class="layui-form-mid layui-word-aux"></div>
+                <button class="layui-btn" lay-submit="" lay-filter="subMode">更新</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="layui-layout layui-layout-admin" style="padding-left: 0px;margin-top: 20px;">
+        <form class="layui-form" action="" method="post" >
+            <div class="layui-form-item">
+                <label class="layui-form-label" style="text-align: left;">源服务器</label>
+
+                <div class="layui-input-inline">
+                    <input type="text" name="game_mid" id="game_mid" class="layui-input" value="{{.game.Mid}}">
+                </div>
+                <div class="layui-form-mid layui-word-aux"></div>
+                <button class="layui-btn" lay-submit="" lay-filter="submid">修改</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="layui-layout layui-layout-admin" style="padding-left: 40px;margin-top: 20px;padding-right: 10px;">
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>已安装的补丁</legend>
+    </fieldset>
+
+    <table class="layui-table" lay-skin="nob" lay-size="sm">
+        <colgroup>
+            <col width="180">
+            <col>
+        </colgroup>
+
+        <tbody>
+            {{range $v := .hotedPatch}}
+            <tr>
+                <td>{{$v}}</td>
+                <td></td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<div class="layui-layout layui-layout-admin" style="padding-left: 40px;margin-top: 20px;padding-right: 10px;">
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>安装日志</legend>
+    </fieldset>
+    <pre class="layui-code">{{.game.InstallLog}}</pre>
+</div>
+
+<div class="layui-layout layui-layout-admin" style="padding-left: 40px;margin-top: 20px;padding-right: 10px;">
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>补丁日志</legend>
+    </fieldset>
+    <pre class="layui-code">{{.game.HotLog}}</pre>
+</div>
+
+<div class="layui-layout layui-layout-admin" style="padding-left: 40px;margin-top: 20px;padding-right: 10px;">
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>开服日志</legend>
+    </fieldset>
+    <pre class="layui-code">{{.game.StartLog}}</pre>
+</div>
+
+<div class="layui-layout layui-layout-admin" style="padding-left: 40px;margin-top: 20px;padding-right: 10px;">
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+        <legend>关服日志</legend>
+    </fieldset>
+    <pre class="layui-code">{{.game.StopLog}}</pre>
+</div>
+
+<script>
+    layui.use(['form','element','layer','jquery'],function(){
+        var form = layui.form; //只有执行了这一步，部分表单元素才会自动修饰成功
+        var $ = layui.$;
+
+        var error_info = "{{.flashError}}";
+        if(error_info){
+            layer.msg(error_info,{icon: 2,shade:0.3},function () {
+                window.history.go(-1)
+            })
+            return;
+        }
+
+        var id = $("#id").val();
+        form.on('submit(sub)', function(data){
+            var version = data.field.game_version;
+            layer.confirm("确认要更新该游服吗？", {icon: 3, title:'提示'}, function(index){
+                layer.load();
+                $.post('/home/game/updatever', {"id":id, "version":version}, function (out) {
+                    if (out.status == 0) {
+                        layer.msg("游服更新成功",{icon: 1,shade:0.3,time:1000},function () {
+                            window.location.reload();
+                        })
+                    } else {
+                        layer.msg(out.message)
+                    }
+                }, "json");
+
+                setTimeout(function(){
+                    layer.closeAll('loading');
+                }, 2000);
+
+                layer.close(index);
+            });
+            return false;
+        });
+
+        // 源服务器鼠标悬停提示
+        var tip_index = 0;
+        $(document).on('mouseenter', '#game_mid', function(){
+        tip_index = layer.tips('如果没有导入过其他服数据，默认为0。导入其他服数据填入对应服ID', '#game_mid', {tips: [1, '#0FA6D8'], time: 0});
+        }).on('mouseleave', '#game_mid', function(){
+        layer.close(tip_index);
+        });
+
+        // 修改源服务器按钮响应方法
+        form.on('submit(submid)', function(data){
+            var mid = data.field.game_mid;
+            layer.confirm("确认要修改该游服源服务器ID吗？", {icon: 3, title:'提示'}, function(index){
+                layer.load();
+                $.post('/home/game/updatemid', {"id":id, "mid":mid}, function (out) {
+                    if (out.status == 0) {
+                        layer.msg("游服修改成功",{icon: 1,shade:0.3,time:1000},function () {
+                            window.location.reload();
+                        })
+                    } else {
+                        layer.msg(out.message)
+                    }
+                }, "json");
+
+                setTimeout(function(){
+                    layer.closeAll('loading');
+                }, 2000);
+
+                layer.close(index);
+            });
+            return false;
+        });
+
+        // 游服显示模式修改
+        form.on('submit(subMode)', function(data){
+            var mode = data.field.game_mode;
+            layer.confirm("确认要更新该游服的显示模式吗？", {icon: 3, title:'提示'}, function(index){
+                layer.load();
+                $.post('/home/game/updatemode', {"id":id, "mode":mode}, function (out) {
+                    if (out.status == 0) {
+                        layer.msg("游服显示模式更新成功",{icon: 1,shade:0.3,time:1000},function () {
+                            window.location.reload();
+                        })
+                    } else {
+                        layer.msg(out.message)
+                    }
+                }, "json");
+
+                setTimeout(function(){
+                    layer.closeAll('loading');
+                }, 2000);
+
+                layer.close(index);
+            });
+            return false;
+        });
+
+        form.render();
+    });
+</script>
+
+{{end}}

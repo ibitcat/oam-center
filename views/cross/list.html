@@ -1,0 +1,200 @@
+{{define "content"}}
+
+<style>
+.layui-table-cell{
+    height:auto;
+    overflow:visible;
+    text-overflow:inherit;
+}
+</style>
+
+<div class="layui-layout layui-layout-admin" style="padding-left: 20px;">
+    <div style="margin: 10px 0px">
+        <blockquote class="layui-elem-quote">
+            说明： 目前只支持单平台跨服，暂不支持跨平台跨服。
+        </blockquote>
+    </div>
+
+    <div class="layui-row" style="margin-top: 20px;">
+        <div class="layui-col-xs6">
+            <div class="layui-btn-group">
+                <button class="layui-btn" data-type="tabAdd" id="crossAdd">新建</button>
+                <button class="layui-btn batch" data-type="batchinstall">安装</button>
+                <button class="layui-btn batch" data-type="batchhot">补丁</button>
+                <button class="layui-btn batch" data-type="batchconfig">配置</button>
+                <button class="layui-btn batch" data-type="batchstart">开服</button>
+                <button class="layui-btn layui-btn-danger batch" data-type="batchstop">关服</button>cron
+            </div>
+        </div>
+
+        <div class="layui-col-xs6 search_text" style="text-align: right;">
+            <form class="layui-form" action="" onsubmit="javascript:return false;">
+                <div class="demoTable">
+                    <div class="layui-inline" style="width: 40%">
+                        <input class="layui-input" name="cross_group" id="cross_group" autocomplete="off"  placeholder="跨服组id" >
+                    </div>
+                    <button class="layui-btn" data-type="reload" id="reload"><i class="fa fa-search"></i>查询</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <table class="layui-hide" id="table_list" lay-filter="table_filter">
+    </table>
+
+    <script type="text/html" id="bar">
+        <a class="layui-btn layui-btn-xs " lay-event="detail">详细</a>
+        <a class="layui-btn layui-btn-warm layui-btn-xs" lay-event="edit">编辑</a>
+    </script>
+</div>
+
+<script>
+    layui.use(['table','form','element','jquery'], function(){
+        var table = layui.table;
+        var form = layui.form;
+        var element = layui.element;
+        var error_info = "{{.flashError}}";
+        if(error_info){
+            layer.msg(error_info,{icon: 2,shade:0.3},function () {
+                window.history.go(-1)
+            })
+            return;
+        }
+
+        //方法级渲染
+        table.render({
+            elem: '#table_list'
+            ,url: '/home/cross/table'
+            ,cols: [
+                [
+                    {checkbox: true, rowspan: 2}
+                    ,{field:'id', title: '跨服组id', align:'center', width:100, rowspan: 2}
+                    ,{field:'cross_plat', title: '标示', width:180, rowspan: 2}
+                    ,{field:'cross_version', title: '当前版本', rowspan: 2}
+                    ,{field:'cross_port', title: '跨服端口', width:100, rowspan: 2}
+                    ,{field:'cross_dbport', title: '跨服数据库', width:100, rowspan: 2}
+                    ,{field:'create_time', title: '创建日期', width:170, rowspan: 2}
+                    ,{title: '游服列表', align: 'center', colspan: 2}
+                    ,{field:'cross_status', title: '状态', rowspan: 2}
+                    ,{title: '操作', width:160, align:'center', toolbar: '#bar', rowspan: 2}
+                ]
+                ,[
+                    {field: 'game_flag', title: '游服标示'}
+                    ,{field: 'join_time', title: '加入时间'}
+                ]
+            ]
+            ,id: 'listReload'
+            ,page: true
+            ,limit:20
+            ,limits: [20,40,80]
+            //,height: "full-130"
+        });
+
+        var $ = layui.$, active = {
+            reload: function(){
+                table.reload('listReload', {
+                    where: {
+                        cross_group:$('#cross_group').val(),
+                    }
+                });
+            }
+        };
+
+        $("#crossAdd").on("click",function() {
+            window.parent.openTab("/home/cross/add", '新建跨服', "admin_cross_add-0", 'fa-plus');
+        })
+
+        //监听工具条
+        table.on('tool(table_filter)', function(obj){
+            var data = obj.data;
+            if(obj.event === 'edit'){
+                window.parent.openTab("/home/cross/edit?id="+data.id, data.cross_plat +' 编辑',"admin_cross_edit-"+data.id,'fa-edit');
+            }else if (obj.event==='detail'){
+                window.parent.openTab('/home/cross/detail?id='+data.id, data.cross_plat +'详情', "admin_cross_detail-"+data.id, 'fa-folder-open-o');
+            }else{
+                layer.msg('操作不存在')
+            }
+        });
+
+        $(".batch").on('click',function (obj) {
+            var action = $(this).attr('data-type');
+            var checkStatus = table.checkStatus('listReload');
+            var data = checkStatus.data;
+            if(data.length<1){
+                layer.msg("请选择操作数据");
+                return;
+            }
+
+            var  msg = "确认启动这些跨服吗？";
+            if (action=='batchstop'){
+                msg = "确定关闭这些跨服吗？";
+            }else if (action=='batchinstall'){
+                msg = "确定安装这些跨服吗？"
+            }else if (action=='batchhot') {
+                msg = "确定更新这些跨服补丁吗？"
+            }else if (action=='batchconfig') {
+                msg = "确定更新这些跨服的配置文件吗？"
+            }
+
+            layer.confirm(msg, {icon: 3, title:'提示'}, function(index){
+                var ids = "";
+                $.each(data, function (k,v) {
+                    ids += v.id+",";
+                });
+                ids = ids.substr(0,ids.length-1);
+
+                layer.load(2, {shade:0.3});
+                $.post('/home/cross/'+action, {"ids":ids}, function (out) {
+                    layer.closeAll('loading');
+                    if (out.status == 0) {
+                        var ajaxMsg = "操作成功";
+                        if (out.message) {
+                            ajaxMsg = out.message;
+                        }
+
+                        // 参考：https://www.cnblogs.com/dirgo/p/10080978.html
+                        if (out.data) {
+                            // 返回的结果
+                            layer.open({
+                                type : 1,
+                                area : ["50%","50%"],
+                                title : "操作结果",
+                                maxmin : false,
+                                content : '<div><table class="layui-table" id="templateTable"><colgroup><col width="100"><col width="300"></colgroup><tbody></tbody></table></div>',
+                                success : function(layero, index) {
+                                    $.each(out.data, function (k,v) {
+                                        var employeeTr=$("<tr>"
+                                            +"<td>"+v.id+"</td>"
+                                            +"<td>"+v.msg+"</td>"
+                                            +"</tr>");
+                                        employeeTr.appendTo("#templateTable tbody");
+                                    });
+                                    $('#reload').click();
+                                }
+                            });
+                        }else{
+                            layer.msg(ajaxMsg,{icon: 1, shade:0.3, time:3000},function () {
+                                $('#reload').click();
+                            })
+                        }
+                    } else {
+                        layer.msg(out.message)
+                        return
+                    }
+                }, "json");
+
+                //setTimeout(function(){layer.closeAll('loading');}, 2000);
+                layer.close(index);
+            });
+            return ;
+        })
+
+        $('.demoTable .layui-btn').on('click', function(){
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+    });
+
+</script>
+
+{{end}}

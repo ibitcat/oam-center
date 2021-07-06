@@ -1,0 +1,198 @@
+{{define "content"}}
+<div class="layui-layout layui-layout-admin" style="padding-left: 20px;">
+    <div style="margin: 10px 0px">
+        <blockquote class="layui-elem-quote">
+            说明： 每个平台需要配置一台CDN云服务器，用来做CDN回源主机，如果是小程序平台，还需要配置转发Ngnix云服务器。
+        </blockquote>
+    </div>
+
+    <div class="layui-row" style="margin-top: 20px;">
+        <div class="layui-col-xs6">
+            <button class="layui-btn" data-type="tabAdd" id="agentAdd">新增</button>
+        </div>
+
+        <div class="layui-col-xs6 search_text">
+            <form class="layui-form" action="" onsubmit="javascript:return false;">
+                <div class="demoTable">
+                    <div class="layui-inline" style="width: 40%">
+                        <input class="layui-input" name="agent_flag" id="agent_flag" autocomplete="off" placeholder="平台标示" >
+                    </div>
+                    <button class="layui-btn" data-type="reload">查询</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <table class="layui-hide" id="table_list" lay-filter="table_filter">
+    </table>
+
+    <script type="text/html" id="bar">
+        <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+        <a class="layui-btn layui-btn-xs" lay-event="gslist">列表</a>
+        {{/*<a class="layui-btn layui-btn-xs" lay-event="notice">公告</a>*/}}
+        <a class="layui-btn layui-btn-xs" lay-event="audit">提审通过</a>
+        {{/*<a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>*/}}
+    </script>
+</div>
+<script>
+
+    layui.use(['table','form','element','jquery'], function(){
+        var table = layui.table;
+        var form = layui.form;
+        var element = layui.element;
+
+        var error_info = "{{.flashError}}";
+        if(error_info){
+            layer.msg(error_info,{icon: 2,shade:0.3},function () {
+                window.history.go(-1)
+            })
+            return;
+        }
+
+        //方法级渲染
+        table.render({
+            elem: '#table_list'
+            ,url: '/home/agent/table'
+            ,cols: [[
+                {field:'aid', title: '平台id', align:'center',sort: true, width:100}
+                ,{field:'agent_lang', title: '平台语言', width:100}
+                ,{field:'agent_flag', title: '平台标示', width:100}
+                ,{field:'agent_name', title: '平台名称', width:100}
+                ,{field:'miniapp', hide: true}
+                ,{field:'miniapp_txt', title: '小程序', width:80}
+                ,{field:'audit', title: '提审版本', width:100, edit: 'text'}
+                ,{field:'cdn_vps', title: 'CDN所在vps', width:120}
+                ,{field:'cdn_source', title: 'CDN回源域名'}
+                ,{field:'cdn_domain', title: 'CDN正式域名'}
+                ,{field:'create_time', title: '注册日期', width:170}
+                ,{fixed: 'right', title: '操作', align:'left', toolbar: '#bar', width:200}
+            ]]
+            ,id: 'listReload'
+            ,page: true
+            //,height: "full-130"
+        });
+
+        var $ = layui.$, active = {
+            reload: function(){
+                table.reload('listReload', {
+                    where: {
+                        agent_flag: $('#agent_flag').val(),
+                    }
+                });
+            }
+        };
+
+        // 监听表格查询按钮
+        $('.demoTable .layui-btn').on('click', function(){
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+
+        $("#agentAdd").on("click",function() {
+            window.parent.openTab("/home/agent/add", '新增平台', "admin_agent_add-0", 'fa-plus');
+        })
+
+        //监听工具条
+        table.on('tool(table_filter)', function(obj){
+            var data = obj.data;
+            var flag = data.agent_lang + "_" + data.agent_flag;
+            if(obj.event === 'edit'){
+                window.parent.openTab("/home/agent/edit?id="+data.aid, flag+' 平台编辑', "admin_agent_edit-"+data.id, 'fa-edit');
+            }else if (obj.event === 'notice'){
+                window.parent.openTab("/home/agent/notice?id="+data.aid, flag+' 公告编辑', "admin_notice_edit-"+data.id, 'fa-edit');
+            }else if (obj.event === 'gslist') {
+                layer.confirm('确定更新【'+flag+'】平台的服务器列表么？', function(index){
+                    var jsData = {'id':data.aid}
+                    layer.load(2, {shade:0.3});
+                    $.post('/home/agent/ajaxgslist', jsData, function (out) {
+                        layer.closeAll('loading');
+                        if (out.status == 0) {
+                            layer.alert('服务器列表cdn刷新成功.', {icon: 1,shade:0.3,time:1000},function(index){
+                                layer.close(index);
+                                window.location.reload();
+                            });
+                        } else {
+                            layer.msg(out.message)
+                        }
+                    }, "json");
+                    layer.close(index);
+                });
+            }else if (obj.event === 'audit'){
+                layer.confirm('确认小程序平台【'+flag+'】已提审通过？', function(index){
+                    var jsData = {'id':data.aid}
+                    layer.load(2, {shade:0.3});
+                    $.post('/home/agent/passaudit', jsData, function (out) {
+                        layer.closeAll('loading');
+                        if (out.status == 0) {
+                            layer.alert('服务器提审版本cdn刷新成功.', {icon: 1,shade:0.3,time:1000},function(index){
+                                layer.close(index);
+                                window.location.reload();
+                            });
+                        } else {
+                            layer.msg(out.message)
+                        }
+                    }, "json");
+                    layer.close(index);
+                });
+            }else if(obj.event === 'del'){
+                layer.confirm('真的删除【'+flag+'】平台么？', function(index){
+                    layer.load(2, {shade:0.3});
+                    var jsData = {'id':data.aid}
+                    $.post('/home/agent/ajaxdel', jsData, function (out) {
+                        layer.closeAll('loading');
+                        if (out.status == 0) {
+                            layer.alert('删除成功了', {icon: 1,shade:0.3,time:1000},function(index){
+                                layer.close(index);
+                                window.location.reload();
+                            });
+                        } else {
+                            layer.msg(out.message)
+                        }
+                    }, "json");
+                    layer.close(index);
+                });
+            } else {
+                layer.msg('操作不存在');
+            }
+        });
+
+        //监听单元格编辑
+        table.on('edit(table_filter)', function(obj){
+            var value = obj.value //得到修改后的值
+            ,data = obj.data //得到所在行所有键值
+            ,field = obj.field; //得到字段
+
+            if (data.miniapp!=1) {
+                layer.msg("注意：小程序版本才能修改提审版本", function(){
+                    window.location.reload();
+                });
+                return;
+            }
+
+            layer.confirm("确认要修改小程序的提审版本吗？", {icon: 3, title:'提示'}, function(index){
+                layer.load(2, {shade:0.3});
+                $.post('/home/agent/updateaudit', {"id":data.aid, "audit":value}, function (out) {
+                    layer.closeAll('loading');
+                    if (out.status == 0) {
+                        var ajaxMsg = "操作成功";
+                        if (out.message) {
+                            ajaxMsg = out.message;
+                        }
+
+                        layer.msg(ajaxMsg,{icon: 1,shade:0.3,time:3000},function () {
+                            window.location.reload();
+                        })
+                    } else {
+                        layer.msg(out.message, function(){
+                            window.location.reload();
+                        });
+                        return;
+                    }
+                }, "json");
+                layer.close(index);
+            });
+            return ;
+        });
+    });
+</script>
+{{end}}

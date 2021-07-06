@@ -1,0 +1,221 @@
+{{define "content"}}
+
+<style>
+    .notify{
+        display: none;
+    }
+</style>
+<div class="layui-layout layui-layout-admin" style="padding-left: 40px;margin-top: 20px;">
+    <form class="layui-form" action="" method="post" >
+        <div class="layui-form-item">
+            <label class="layui-form-label mw200">平台名称</label>
+            <div class="layui-input-inline">
+                <select id="agent_select" name="game_agent" lay-verify="required" lay-filter="agent">
+                    <option value=""></option>
+                {{range $k, $v := .agentGroup}}
+                    <option value="{{$k}}">{{$v}}</option>
+                {{end}}
+                </select>
+            </div>
+            <div class="layui-form-mid layui-word-aux"></div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label mw200">是否小程序</label>
+            <div class="layui-input-inline">
+                <input type="checkbox" id="miniapp" lay-skin="switch" lay-text="是|否" disabled="disabled">
+            </div>
+            <div class="layui-form-mid layui-word-aux"><i class="fa fa-info-circle" aria-hidden="true" id="des"></i></div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label mw200">游服名称</label>
+            <div class="layui-input-inline mw400">
+                <input type="text" name="game_name" id="game_name" lay-verify="required" autocomplete="off" placeholder="eg.: 修仙1服" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux"></div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label mw200">游服id</label>
+            <div class="layui-input-inline mw400">
+                <input type="text" name="game_sid" id="game_sid" lay-verify="required" autocomplete="off" placeholder="eg.: 10001" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux">注意：游服id大于10000表示是外测服</div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label mw200">游服序号</label>
+            <div class="layui-input-inline mw400">
+                <input type="text" name="game_serial" id="game_serial" autocomplete="off" placeholder="游服序号不能超过16383" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux">注意：不填则自动分配</div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label mw200">游服版本</label>
+            <div class="layui-input-inline mw400">
+                <input type="text" name="game_version" id="game_version" lay-verify="required" autocomplete="off" placeholder="eg.: 20190101" class="layui-input" value="">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label mw200">所属VPS</label>
+            <div class="layui-input-inline mw400">
+                <input type="text" name="game_vps" id="game_vps" lay-verify="required" autocomplete="off" placeholder="所属VPS" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux"><a href="/home/vps" target="_blank">注意：去vps列表查询云服务器id</a></div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label mw200">开服时间</label>
+            <div class="layui-input-inline mw400">
+                <input type="text" class="layui-input" name="game_opentime" id="game_opentime" lay-verify="required" placeholder="yyyy-MM-dd HH:mm:ss">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label mw200">游服端口</label>
+            <div class="layui-input-inline mw400">
+                <input type="text" name="game_port" id="game_port" lay-verify="required" autocomplete="off" placeholder="eg.: 5000" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux">注意：需要大于等于5000</div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label mw200">是否共享数据库</label>
+            <div class="layui-input-inline">
+                <input type="checkbox" id="isSharedb" lay-skin="switch" lay-text="是|否" lay-filter="sharedb">
+            </div>
+        </div>
+
+        <div class="layui-form-item share_gameflag" style="display:none;">
+            <label class="layui-form-label mw200">共享数据库的游服标示</label>
+            <div class="layui-input-inline mw400">
+                <input type="text" name="share_db" autocomplete="off" placeholder="eg: cn_self_S1" class="layui-input" value="">
+            </div>
+        </div>
+
+        <div class="layui-form-item dbport">
+            <label class="layui-form-label mw200">数据库端口</label>
+            <div class="layui-input-inline mw400">
+                <input type="text" name="db_port" id="db_port" autocomplete="off" placeholder="eg.: 3306" class="layui-input" value="">
+            </div>
+        </div>
+
+        <div class="layui-form-item tls">
+            <label class="layui-form-label mw200">是否走TLS</label>
+            <div class="layui-input-inline">
+                <input type="checkbox" id="isTls" name="is_tls" lay-skin="switch" lay-text="是|否" value="1">
+            </div>
+        </div>
+
+        <div class="layui-form-item nginx_select" style="display:none;">
+            <label class="layui-form-label mw200">转发Nginx</label>
+            <div class="layui-input-inline mw400">
+                <select id="game_nginx" name="game_nginx">
+                </select>
+            </div>
+            <div class="layui-form-mid layui-word-aux">注意：小程序需要</div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label mw200">客户端模式</label>
+            <div class="layui-input-inline mw400">
+                <input type="text" name="game_mode" id="game_mode" lay-verify="required" autocomplete="off" placeholder="1=火爆 2=维护 3=新服 4=未开服" class="layui-input" value="">
+            </div>
+        </div>
+
+        <input type="hidden" name="id" id="id" value="0">
+        <div class="layui-form-item">
+            <label class="layui-form-label mw200"></label>
+            <div class="layui-input-inline mw400">
+                <button class="layui-btn" lay-submit="" lay-filter="sub">立即提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+    </form>
+</div>
+<script>
+    layui.use(['form','element','layer','jquery','laydate'],function(){
+        var form = layui.form; //只有执行了这一步，部分表单元素才会自动修饰成功
+        var $ = layui.jquery;
+        var error_info = "{{.flashError}}";
+        if(error_info){
+            layer.msg(error_info,{icon: 2,shade:0.3},function () {
+                window.history.go(-1)
+            })
+            return;
+        }
+
+        //日期时间选择器
+        var laydate = layui.laydate;
+        $('#game_opentime').ready(
+            laydate.render({elem: '#game_opentime',type: 'datetime', value: new Date()})
+        );
+
+        $("#des").on('click',function () {
+            layer.tips('设为“是”的话，则需要一台nginx转发服务器，且需要配置wss和https转发。', '#des', {
+                tips: [1, '#0FA6D8'] //还可配置颜色
+            });
+        })
+
+        // 平台选择
+        // 如果是小程序，则显示nginx列表
+        form.on('select(agent)', function(data){
+            $.post('/home/agent/isminiapp', {aid:data.value}, function (out) {
+                $("#game_nginx").empty();
+                if (out.status == 0) {
+                    var isMiniapp = out.miniapp == 1 ? true : false;
+                    $("#miniapp").prop('checked', isMiniapp);
+                    if (isMiniapp) {
+                        $(".tls").hide();
+                        $(".nginx_select").show();
+                        $.each(out.nginxs, function (key, value) {
+                            $("#game_nginx").append("<option value='"+key+"'>"+value+"</option>");
+                        });
+                    }else{
+                        $(".tls").show();
+                        $(".nginx_select").hide();
+                    }
+                } else {
+                    $("#miniapp").prop('checked', false);
+                    $(".tls").show();
+                    $(".nginx_select").hide();
+                    layer.msg(out.message)
+                }
+                form.render();
+            }, "json");
+            return false;
+        });
+
+        // 是否共享数据库
+        form.on('switch(sharedb)', function(data){
+            //console.log(data.elem.checked);
+            if(data.elem.checked){
+                $(".share_gameflag").show();
+                $(".dbport").hide();
+            }else{
+                $(".share_gameflag").hide();
+                $(".dbport").show();
+            }
+        })
+
+        form.on('submit(sub)', function(data){
+            var form_data = data.field;
+            $.post('/home/game/ajaxsave', form_data, function (out) {
+                if (out.status == 0) {
+                    layer.msg("操作成功",{icon: 1,shade:0.3,time:1000},function () {
+                        window.location.reload();
+                    })
+                } else {
+                    layer.msg(out.message)
+                }
+            }, "json");
+            return false;
+        });
+
+        form.render();
+    });
+</script>
+{{end}}

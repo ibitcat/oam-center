@@ -1,0 +1,89 @@
+{{define "content"}}
+<div class="layui-layout layui-layout-admin" style="padding-left: 40px;margin-top: 20px;">
+    <div style="margin: 10px 10px">
+        <blockquote class="layui-elem-quote">
+            说明：Nginx转发服务器需要设置wss转发和https转发。<br>
+            实例：wss-jmxy.aidalan.com, single-jmxy.aidalan.com。
+        </blockquote>
+    </div>
+
+    <form class="layui-form" action="" method="post" >
+        <div class="layui-form-item">
+            <label class="layui-form-label">平台名称</label>
+            <div class="layui-input-inline">
+                <select id="agent_select" name="aid" lay-verify="required" lay-filter="agent">
+                    <option value=""></option>
+                {{range $v := .agentGroup}}
+                    <option value="{{$v.Aid}}">{{$v.Lang}}_{{$v.Flag}}</option>
+                {{end}}
+                </select>
+            </div>
+            <div class="layui-form-mid layui-word-aux"></div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">起始Sid</label>
+            <div class="layui-input-inline">
+                <input type="text" name="sid" id="sid" lay-verify="required" autocomplete="off" placeholder="eg.: 10001" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux">*</div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">平台Nginx所属VPS</label>
+            <div class="layui-input-inline">
+                <input type="text" name="vpsid" id="vpsid" lay-verify="required" autocomplete="off" placeholder="eg.: 1" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux"><a href="/home/vps" target="_blank">去vps列表查询云服务器id</a></div>
+        </div>
+
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">转发域名</label>
+            <div class="layui-input-inline mw400">
+                <input type="text" name="domain" id="domain" lay-verify="required" autocomplete="off" placeholder="eg.: jmxy.aidalan.com" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux">注意：会自动添加前缀【wss-】 和【single-】。</div>
+        </div>
+
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit="" lay-filter="sub">立即提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    var $;
+    layui.config({base : "js/"}).use(['form','element','layer','jquery'],function(){
+        var form = layui.form; //只有执行了这一步，部分表单元素才会自动修饰成功
+        var $ = layui.jquery;
+        var role_ids = [];
+
+        var error_info = "{{.flashError}}";
+        if(error_info){
+            layer.msg(error_info,{icon: 2,shade:0.3,time:1000},function () {
+                window.history.go(-1)
+            })
+            return;
+        }
+
+        form.on('submit(sub)', function(data){
+            var form_data = $("form").serialize();
+            $.post('/home/nginx/ajaxsave', form_data, function (out) {
+                if (out.status == 0) {
+                    layer.msg("操作成功",{icon: 1,shade:0.3,time:1000},function () {
+                        window.location.reload()
+                    })
+                } else {
+                    layer.msg(out.message)
+                }
+            }, "json");
+            return false;
+        });
+        form.render();
+    });
+</script>
+{{end}}

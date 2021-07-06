@@ -1,0 +1,251 @@
+{{define "content"}}
+<div class="layui-layout layui-layout-admin" style="padding-left: 20px;">
+    <div style="margin: 10px 0px">
+        <blockquote class="layui-elem-quote">
+            说明： 游服的显示模式定义如下，1=火爆 2=维护 3=新服 4=未开服。
+        </blockquote>
+    </div>
+
+    <div class="layui-row" style="margin-top: 20px;">
+        <div class="layui-col-xs6">
+            <div class="layui-btn-group">
+                <button class="layui-btn" data-type="tabAdd" id="gameAdd">注册</button>
+                <button class="layui-btn batch" data-type="batchinstall">安装</button>
+                <button class="layui-btn batch" data-type="batchhot">补丁</button>
+                <button class="layui-btn batch" data-type="batchstart">开服</button>
+                <button class="layui-btn layui-btn-danger batch" data-type="batchstop">关服</button>
+                <button class="layui-btn layui-btn-normal" id="batchcontrol">批量操作</button>
+            </div>
+        </div>
+
+        <div class="layui-col-xs6 search_text" style="text-align: right;">
+            <form class="layui-form" action="" onsubmit="javascript:return false;">
+                <div class="demoTable">
+                    <div class="layui-inline" style="width: 40%">
+                        <input class="layui-input" name="game_flag" id="game_flag" autocomplete="off"  placeholder="游服标示" >
+                    </div>
+                    <button class="layui-btn" data-type="reload" id="reload"><i class="fa fa-search"></i>查询</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <table class="layui-hide" id="table_list" lay-filter="table_filter">
+    </table>
+
+    <script type="text/html" id="selectTool">
+        <select name="selectDemo" lay-filter="selectDemo" lay-search>
+            {{range $k, $v := .gameMode}}
+                <option value="{{$k}}">{{$v}}</option>
+            {{end}}
+        </select>
+    </script>
+
+    <script type="text/html" id="bar">
+        <a class="layui-btn layui-btn-xs " lay-event="detail">详细</a>
+        <a class="layui-btn layui-btn-warm layui-btn-xs" lay-event="edit">编辑</a>
+    </script>
+</div>
+
+<script>
+    layui.use(['table','form','element','jquery'], function(){
+        var table = layui.table;
+        var form = layui.form;
+        var element = layui.element;
+        var error_info = "{{.flashError}}";
+        if(error_info){
+            layer.msg(error_info,{icon: 2,shade:0.3},function () {
+                window.history.go(-1)
+            })
+            return;
+        }
+
+        //方法级渲染
+        table.render({
+            elem: '#table_list'
+            ,url: '/home/game/table'
+            ,cols: [[
+                {checkbox: true, fixed: true}
+                ,{field:'id', title: 'ID', align:'center',sort: true, width:80}
+                ,{field:'game_sid', title: '游服id'}
+                ,{field:'game_type', title: '游服模式', sort: true}
+                ,{field:'game_flag',title: '游服标示', sort: true, width:180}
+                ,{field:'game_name', title: '游服名称'}
+                ,{field:'game_serial', title: '游服序号'}
+                ,{field:'game_version', title: '当前版本'}
+                ,{field:'game_port', title: '端口', width:80}
+                ,{field:'game_dbport', title: 'mysql', width:80}
+                ,{field:'game_mode', hide: true}
+                ,{field:'game_mode_txt', title: '显示模式', /*edit: 'text'*/}
+                ,{field:'game_domain', title: '游服域名', width:270}
+                ,{field:'game_status', title: '状态'}
+                ,{fixed: 'right', align:'center', title:'操作', toolbar: '#bar', width:120}
+            ]]
+            ,id: 'listReload'
+            ,initSort:{field: 'game_type', type: 'asc'}
+            ,page: true
+            ,limit:20
+            ,limits: [20,40,80]
+        });
+
+        var $ = layui.$, active = {
+            reload: function(){
+                table.reload('listReload', {
+                    where: {
+                        game_flag:$('#game_flag').val(),
+                    }
+                });
+            }
+        };
+
+        $("#gameAdd").on("click",function() {
+            window.parent.openTab("/home/game/add", '注册游服', "admin_game_add-0", 'fa-plus');
+        })
+
+        $("#batchcontrol").on("click",function() {
+            window.parent.openTab("/home/game/batchcontrol", '批量操作', "admin_game_batchcontrol-0", 'fa-bolt');
+        })
+
+        //监听工具条
+        table.on('tool(table_filter)', function(obj){
+            var data = obj.data;
+            var game_flag = window.parent.delHtmlTag(data.game_flag)
+            game_flag = window.parent.getDelimiterLastString(game_flag,"-")
+            if(obj.event === 'edit'){
+                var status = window.parent.delHtmlTag(data.game_status);
+                console.log(status);
+                if(status!="未安装"){
+                    layer.msg("已安装的游服无法编辑，请人工介入");
+                    return;
+                }
+                window.parent.openTab("/home/game/edit?id="+data.id,game_flag+' 编辑',"admin_game_edit-"+data.id,'fa-edit');
+            }else if (obj.event==='detail'){
+                window.parent.openTab('/home/game/detail?id='+data.id, game_flag+'详情', "admin_game_detail-"+data.id, 'fa-folder-open-o');
+            }else{
+                layer.msg('操作不存在')
+            }
+        });
+
+        //监听单元格编辑
+        table.on('edit(table_filter)', function(obj){
+            var value = obj.value //得到修改后的值
+            ,data = obj.data //得到所在行所有键值
+            ,field = obj.field; //得到字段
+
+            //layer.msg('[ID: '+ data.id +'] ' + field + ' 字段更改为：'+ value);
+            layer.confirm("确认要更新游服的显示模式吗？", {icon: 3, title:'提示'}, function(index){
+                layer.load(2, {shade:0.3});
+                $.post('/home/game/updatemode', {"id":data.id, "mode":value}, function (out) {
+                    layer.closeAll('loading');
+                    if (out.status == 0) {
+                        var ajaxMsg = "操作成功";
+                        if (out.message) {
+                            ajaxMsg = out.message;
+                        }
+
+                        layer.msg(ajaxMsg,{icon: 1,shade:0.3,time:3000},function () {
+                            $('#reload').click();
+                        })
+                    } else {
+                        layer.msg(out.message, function(){
+                            $('#reload').click();
+                        });
+                        return;
+                    }
+                }, "json");
+
+                //setTimeout(function(){layer.closeAll('loading');}, 2000);
+                layer.close(index);
+            });
+            return ;
+        });
+
+        $(".batch").on('click',function (obj) {
+            var action = $(this).attr('data-type');
+            var checkStatus = table.checkStatus('listReload');
+            var data = checkStatus.data;
+            if(data.length<1){
+                layer.msg("请选择操作数据");
+                return;
+            }
+
+            var  msg = "确认启动这些游服吗？";
+            if (action=='batchstop'){
+                msg = "确定关闭这些游服吗？";
+            }else if (action=='batchinstall'){
+                msg = "确定安装这些游服吗？"
+            }else if (action=='batchhot') {
+                msg = "确定更新这些游服补丁吗？"
+            }
+
+            layer.confirm(msg, {icon: 3, title:'提示'}, function(index){
+                var ids = "";
+                $.each(data, function (k,v) {
+                    ids += v.id+",";
+                });
+                ids = ids.substr(0,ids.length-1);
+
+                layer.load(2, {shade:0.3});
+                $.post('/home/game/'+action, {"ids":ids}, function (out) {
+                    layer.closeAll('loading');
+                    if (out.status == 0) {
+                        var ajaxMsg = "操作成功";
+                        if (out.message) {
+                            ajaxMsg = out.message;
+                        }
+
+                        // 参考：https://www.cnblogs.com/dirgo/p/10080978.html
+                        if (out.data) {
+                            // 返回的结果
+                            layer.open({
+                                type : 1,
+                                area : ["50%","50%"],
+                                title : "操作结果",
+                                maxmin : false,
+                                content : '<div><table class="layui-table" id="templateTable"><colgroup><col width="100"><col width="300"></colgroup><tbody></tbody></table></div>',
+                                success : function(layero, index) {
+                                    $.each(out.data, function (k,v) {
+                                        var employeeTr=$("<tr>"
+                                            +"<td>"+v.id+"</td>"
+                                            +"<td>"+v.msg+"</td>"
+                                            +"</tr>");
+                                        employeeTr.appendTo("#templateTable tbody");
+                                    });
+                                    $('#reload').click();
+                                }
+                            });
+                        }else{
+                            layer.msg(ajaxMsg,{icon: 1, shade:0.3, time:3000},function () {
+                                $('#reload').click();
+                            })
+                        }
+                    } else {
+                        layer.msg(out.message)
+                        return
+                    }
+                }, "json");
+
+                //setTimeout(function(){layer.closeAll('loading');}, 2000);
+                layer.close(index);
+            });
+            return ;
+        })
+
+        $('.demoTable .layui-btn').on('click', function(){
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+        // 鼠标悬停提示测试
+        var tip_index = 0;
+        $(document).on('mouseenter', '#batchcontrol', function(){
+        tip_index = layer.tips('<i class="layui-icon  layui-icon-face-smile-b" style="color: #1E9FFF;"></i>', '#batchcontrol', {tips: [2, '#000000'], time: 0});
+        }).on('mouseleave', '#batchcontrol', function(){
+        layer.close(tip_index);
+        });
+
+
+    });
+
+</script>
+
+{{end}}

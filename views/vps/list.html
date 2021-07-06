@@ -1,0 +1,151 @@
+{{define "content"}}
+<div class="layui-layout layui-layout-admin" style="padding-left: 20px;">
+     <div style="margin: 10px 10px">
+        <blockquote class="layui-elem-quote">
+            说明：vps 被控端程序运行时，会自动注册vps。vps类型定义（bit位）： 1=game,2=cdn,4=nginx,8=center。
+        </blockquote>
+    </div>
+
+    <div class="layui-row" style="margin-top: 20px;">
+        <div class="layui-col-xs6">
+            <div class="layui-btn-group">
+                <button class="layui-btn batch" data-type="batchping">检查是否在线</button>
+            </div>
+        </div>
+    </div>
+
+    <table class="layui-hide" id="table_list" lay-filter="table_filter">
+    </table>
+
+    <script type="text/html" id="bar">
+        <a class="layui-btn layui-btn-xs" lay-event="ping">ping</a>
+        <a class="layui-btn layui-btn-xs" lay-event="update">更新被控端</a>
+    </script>
+</div>
+
+<script>
+    layui.use(['table','jquery'], function(){
+        var table = layui.table;
+        var $ = layui.jquery;
+
+        var error_info = "{{.flashError}}";
+        if(error_info){
+            layer.msg(error_info,{icon: 2,shade:0.3},function () {
+                window.history.go(-1)
+            })
+            return;
+        }
+
+        //方法级渲染
+        table.render({
+            elem: '#table_list'
+            ,url: '/home/vps/table'
+            ,cols: [[
+                {checkbox: true, fixed: true}
+                ,{field:'id', title: 'ID', align:'center',sort: true, width:150}
+                ,{field:'ip',title: 'ip地址', width:150}
+                ,{field:'type',title: '类型'}
+                ,{field:'domain', title: 'vps域名'}
+                ,{field:'create_time', title: '注册日期', width:170}
+                ,{field:'status_txt', title: '在线状态', width:100}
+                ,{field:'vps_time', title: '当前日期', edit:"text", width:170}
+                ,{field:'version', title: 'ctl版本', width:100, sort: true}
+                ,{field:'detail', title: '备注'}
+                ,{fixed: 'right', title: '操作', align:'center', toolbar: '#bar',width:150}
+            ]]
+            ,id: 'listReload'
+            ,page: true
+        });
+
+        table.on('tool(table_filter)', function(obj){
+            var data = obj.data;
+            if (obj.event === 'update') {
+                layer.load(2, {shade:0.3});
+                $.post('/home/vps/updatectl', {'id':data.id}, function (out) {
+                    layer.closeAll('loading');
+                    if (out.status == 0) {
+                        layer.msg("更新成功",{icon: 1,shade:0.3,time:1000},function () {
+                            window.location.reload();
+                        })
+                    } else {
+                        layer.msg(out.message);
+                        return;
+                    }
+                }, "json");
+            } else if (obj.event === 'ping') {
+                $.get("/home/vps/ping", {id: data.id}, function (out) {
+                    layer.msg(out.message,{icon: 1,shade:0.3,time:1000},function () {
+                        window.location.reload();
+                    })
+                });
+            }else {
+                layer.msg('操作不存在');
+            }
+        });
+
+        //监听单元格编辑
+        table.on('edit(table_filter)', function(obj){
+            var value = obj.value //得到修改后的值
+            ,data = obj.data //得到所在行所有键值
+
+            layer.confirm("确认要修改服务器时间吗？", {icon: 3, title:'提示'}, function(index){
+                layer.load(2, {shade:0.3});
+                $.post('/home/vps/changetime', {"id":data.id, "timestr":value}, function (out) {
+                    layer.closeAll('loading');
+                    if (out.status == 0) {
+                        var ajaxMsg = "操作成功";
+                        if (out.message) {
+                            ajaxMsg = out.message;
+                        }
+
+                        layer.msg(ajaxMsg,{icon: 1,shade:0.3,time:2000},function () {
+                            window.location.reload();
+                        })
+                    } else {
+                        layer.msg(out.message, function(){
+                            window.location.reload();
+                        });
+                        return;
+                    }
+                }, "json");
+                layer.close(index);
+            });
+            return ;
+        });
+
+
+         $(".batch").on('click',function (obj) {
+            var action = $(this).attr('data-type');
+            var checkStatus = table.checkStatus('listReload');
+            var data = checkStatus.data;
+            if(data.length<1){
+                layer.msg("请选择操作数据");
+                return;
+            }
+
+            var ids = "";
+            $.each(data, function (k,v) {
+                ids += v.id+",";
+            });
+            ids = ids.substr(0,ids.length-1);
+
+            layer.load(2, {shade:0.3});
+            $.post('/home/vps/'+action, {"ids":ids}, function (out) {
+                layer.closeAll('loading');
+                if (out.status == 0) {
+                    var ajaxMsg = "操作成功";
+                    if (out.message) {
+                        ajaxMsg = out.message;
+                    }
+                }
+                layer.msg(out.message, {icon: 1,shade:0.3,time:2000}, function(){
+                    window.location.reload();
+                });
+            }, "json");
+
+            return ;
+        })
+
+    });
+</script>
+{{end}}

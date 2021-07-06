@@ -1,0 +1,69 @@
+{{define "content"}}
+<div class="layui-layout layui-layout-admin" style="padding-left: 40px;margin-top: 20px;">
+    <form class="layui-form" action="" method="post" >
+        <div class="layui-form-item">
+            <label class="layui-form-label">平台标示</label>
+            <div class="layui-input-inline">
+                <input type="text" autocomplete="off" class="layui-input" value="{{.agent.Flag}}" readonly>
+            </div>
+            <div class="layui-form-mid layui-word-aux">*不允许修改</div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">公告标题</label>
+            <div class="layui-input-inline">
+                <input type="text" name="title" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux">*</div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">公告内容</label>
+            <div class="layui-input-inline mw400">
+                <textarea name="content" rows="10" lay-verify="required" placeholder="请输入内容" class="layui-textarea"></textarea>
+            </div>
+        </div>
+
+        <input type="hidden" name="id" id="id" value="{{.agent.Aid}}">
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit="" lay-filter="sub">立即提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    var $;
+    layui.config({base : "js/"}).use(['form','element','layer','jquery'],function(){
+        var form = layui.form; //只有执行了这一步，部分表单元素才会自动修饰成功
+        var $ = layui.jquery;
+
+        var error_info = "{{.flashError}}";
+        if(error_info){
+            layer.msg(error_info,{icon: 2,shade:0.3},function () {
+                window.history.go(-1)
+            })
+            return;
+        }
+
+        form.on('submit(sub)', function(data){
+            var form_data = $("form").serialize();
+            layer.load(2, {shade:0.3});
+            $.post('/home/agent/ajaxnotice', form_data, function (out) {
+                layer.closeAll('loading');
+                if (out.status == 0) {
+                    layer.msg("操作成功",{icon: 1,shade:0.3,time:1000},function () {
+                        window.location.reload()
+                    })
+                } else {
+                    layer.msg(out.message)
+                }
+            }, "json");
+            return false;
+        });
+        form.render();
+    });
+</script>
+{{end}}

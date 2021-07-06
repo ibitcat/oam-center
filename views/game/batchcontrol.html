@@ -1,0 +1,194 @@
+{{define "content"}}
+<link rel="stylesheet" href="/static/layui/formSelects/formSelects-v4.css" />
+<script src="/static/layui/layui.js" type="text/javascript" charset="utf-8"></script>
+    <div class="layui-fluid form-demo-box">
+    <div style="margin: 10px 0px">
+        <blockquote class="layui-elem-quote">
+            说明： 执行批量操作前，必须检查被选中的目标服，是否正确。
+        </blockquote>
+    </div>
+        <div class="layui-row">
+            <div class="layui-col-md7">
+                <section>
+                    <div class="layui-col-md7">
+                        <div class="layui-card">
+                            <div class="layui-card-header">
+                                <strong>批量操作</strong>
+                            </div>
+                            <div class="layui-card-body" style="height: 600px;">
+                                <form class="layui-form layui-form-pane">
+                                    <div class="layui-form-item">
+                                        <label class="layui-form-label">选择平台</label>
+                                        <div class="layui-input-block">
+                                            <select name="aid" lay-filter="agent" id="agent">
+                                                <option value="">选择平台</option>
+                                                <option value="0">全平台</option>
+                                                {{range $k, $v := .agentGroup}}
+                                                    <option value="{{$k}}">{{$v}}</option>
+                                                {{end}}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="layui-form-item">
+                                        <label class="layui-form-label">选择版本</label>
+                                        <div class="layui-input-block">
+                                            <select name="version" lay-filter="version" id="version">
+                                                <option value="">选择版本</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="layui-form-item" pane>
+                                        <label class="layui-form-label">游服类型</label>
+                                        <div class="layui-input-block">
+                                            <input type="radio" lay-filter="isTest" name="isTest" value="0" title="正式服" >
+                                            <input type="radio" lay-filter="isTest" name="isTest" value="1" title="外测服" >
+                                        </div>
+                                    </div>
+                                    <div class="layui-form-item">
+                                        <label class="layui-form-label">目标服</label>
+                                        <div class="layui-input-block">
+                                            <select name="games" lay-filter="game" xm-select='game' xm-select-show-count="3" id="game">
+                                                <option value="">选择目标服</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="layui-form-item">
+                                        <label class="layui-form-label">功能选择</label>
+                                        <div class="layui-input-block">
+                                            <select name="batch_model" lay-filter="batch_model" id="batch_model">
+                                                <option value="start">开服</option>
+                                                <option value="stop">关服</option>
+                                                <option value="update">更新版本</option>
+                                                <option value="install">装服</option>
+                                                <option value="patch">热更补丁</option>
+                                                <option value="mode">更新模式</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="layui-form-item layui-hide" id="modelist" pane>
+                                        <label class="layui-form-label">更新模式</label>
+                                        <div class="layui-input-block">
+                                            <input type="radio" lay-filter="mode" name="mode" value="1" title="火爆" >
+                                            <input type="radio" lay-filter="mode" name="mode" value="2" title="维护" >
+                                            <input type="radio" lay-filter="mode" name="mode" value="3" title="新服" >
+                                            <input type="radio" lay-filter="mode" name="mode" value="4" title="未开服" >
+                                        </div>
+                                    </div>
+                                    <div class="layui-form-item">
+                                            <div class="layui-input-block">
+                                                <button type="button" class="layui-btn layui-btn-normal" lay-submit="" lay-filter='runjob' >执行</button>
+                                                <button type="reset" class="layui-btn layui-btn-danger">重置</button>
+                                            </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="layui-col-md5">
+                        <div class="layui-card">
+                            <div class="layui-card-header">
+                                <strong>执行结果</strong>
+                            </div>
+                            <div class="layui-card-body">
+                                <div class="html">
+                                    <div id="result">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </section>
+            </div>
+        </div>
+    </div>
+    
+    <script type="text/javascript">
+        layui.config({
+                base: '/static/layui/formSelects/' 
+            }).extend({
+                formSelects: 'formSelects-v4'
+            }).use(['layer', 'jquery', 'form', 'formSelects'], function () {
+            var $ = layui.$,
+                form = layui.form,
+                layer = layui.layer,
+                formSelects = layui.formSelects;
+
+            form.on('select(agent)', function(data){
+                $.ajax({
+                    type:'post',
+                    url: "/home/game/getversion?aid="+data.value,
+                    success:function(response){
+                        var data=response.data;
+                        $('#version').empty();
+                        $('#version').append("<option value=''>请选择版本</option>");
+                        for(var i=0;i<data.length;++i) {
+                            $('#version').append("<option value='" + data[i].Version + "'>" + data[i].Version + "</option>");
+                        }
+                        form.render('select');
+                    }
+                })
+            });  
+
+            form.on('radio(isTest)', function(data){
+                // console.log(data.value); //得到被选中的值
+                var agent = $('#agent').val();
+                var version = $('#version').val();
+                $.ajax({
+                    type:'post',
+                    url: "/home/game/getgamename?aid="+agent+"&version="+version+"&isTest="+data.value,
+                    success:function(response){
+                        var data=response.data;
+                        $('#game').empty();
+                        // console.log(data);
+                        if (agent == 0){
+                            for(var i=0;i<data.length;++i) {
+                                var res = data[i].Domain.split('-');
+                                $('#game').append("<option value='" + data[i].Id + "' selected='selected'>"+ res[1] + "-" + "S" + data[i].Sid + "-" + data[i].Name + "</option>");
+                            }
+                        } else {
+                            for(var i=0;i<data.length;++i) {
+                                $('#game').append("<option value='" + data[i].Id + "' selected='selected'>" + "S" + data[i].Sid + "-" + data[i].Name + "</option>");
+                            }
+                        }
+                        formSelects.render();
+                    }
+                })
+            }); 
+
+            form.on('select(batch_model)', function(data){
+                var value = data.value;
+                if (value == "mode") {
+                    $('#modelist').removeClass("layui-hide");;
+                }else{
+                    $('#modelist').addClass("layui-hide");
+                }
+            }); 
+
+            form.on('submit(runjob)', function (data) {
+                    $("#result").html()
+                    var form_data = data.field;
+                    var wait = layer.load();
+                    $.post('/home/game/batchcontrolrun', form_data, function (out) {
+                        layer.close(wait);
+                        if (out.status == 0) {
+                            $("#result").html('<div><table class="layui-table" id="templateTable"><colgroup><col width="100"><col width="300"></colgroup><tbody></tbody></table></div>');
+                            $.each(out.data, function (k,v) {
+                                var employeeTr=$("<tr>"
+                                    +"<td>"+v.id+"</td>"
+                                    +"<td>"+v.msg+"</td>"
+                                    +"</tr>");
+                                employeeTr.appendTo("#templateTable tbody");
+                            });
+                        } else {
+                            layer.msg(out.message)
+                        }
+                    }, "json");
+                    return false;
+                });
+
+
+        });
+    </script>
+{{end}}

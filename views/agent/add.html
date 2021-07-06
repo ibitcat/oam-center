@@ -1,0 +1,121 @@
+{{define "content"}}
+<div class="layui-layout layui-layout-admin" style="padding-left: 40px;margin-top: 20px;">
+    <div style="margin: 10px 10px">
+        <blockquote class="layui-elem-quote">
+            说明：平台语言如下：cn=中文、en=英文、kr=韩文、ru=俄文。
+        </blockquote>
+    </div>
+
+    <form class="layui-form" action="" method="post" >
+        <div class="layui-form-item">
+            <label class="layui-form-label">平台id</label>
+            <div class="layui-input-inline">
+                <input type="text" name="aid" id="aid" lay-verify="required" autocomplete="off" placeholder="平台id" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux">与conf的plat对应</div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">是否小程序</label>
+            <div class="layui-input-inline">
+                <input type="radio" name="miniapp" lay-verify="required" value="0" title="否" checked>
+                <input type="radio" name="miniapp" lay-verify="required" value="1" title="是" >
+            </div>
+            <div class="layui-form-mid layui-word-aux"><i class="fa fa-info-circle" aria-hidden="true" id="des"></i></div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">平台标示</label>
+            <div class="layui-input-inline">
+                <input type="text" name="agent_flag" id="agent_flag" lay-verify="required" autocomplete="off" placeholder="eg.: self" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux">*</div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">平台名称</label>
+            <div class="layui-input-inline">
+                <input type="text" name="agent_name" id="agent_name" lay-verify="required" autocomplete="off" placeholder="eg.: 研发" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux">*</div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">平台语言</label>
+            <div class="layui-input-inline">
+                <input type="text" name="agent_lang" id="agent_lang" lay-verify="required" autocomplete="off" placeholder="eg.: cn" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux">*</div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">平台CDN所属VPS</label>
+            <div class="layui-input-inline">
+                <input type="text" name="vpsid" id="vpsid" lay-verify="required" autocomplete="off" placeholder="平台CDN的云服务器Id" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux"><a href="/home/vps" target="_blank">去vps列表查询云服务器id</a></div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">回源地址</label>
+            <div class="layui-input-inline mw400">
+                <input type="text" name="source" id="source" lay-verify="required" autocomplete="off" placeholder="eg.: http://source.jmxy.kgogame.com" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux">*</div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">正式地址</label>
+            <div class="layui-input-inline mw400">
+                <input type="text" name="domain" id="domain" lay-verify="required" autocomplete="off" placeholder="eg.: http://cdn.jmxy.kgogame.com" class="layui-input" value="">
+            </div>
+            <div class="layui-form-mid layui-word-aux">*</div>
+        </div>
+
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit="" lay-filter="sub">立即提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    var $;
+    layui.config({base : "js/"}).use(['form','element','layer','jquery'],function(){
+        var form = layui.form; //只有执行了这一步，部分表单元素才会自动修饰成功
+        var $ = layui.jquery;
+        var role_ids = [];
+
+        var error_info = "{{.flashError}}";
+        if(error_info){
+            layer.msg(error_info,{icon: 2,shade:0.3,time:1000},function () {
+                window.history.go(-1)
+            })
+            return;
+        }
+
+        $("#des").on('click',function () {
+            layer.tips('设为“是”的话，则需要一台nginx转发服务器，且需要配置wss和https转发。', '#des', {
+                tips: [1, '#0FA6D8'] //还可配置颜色
+            });
+        })
+
+        form.on('submit(sub)', function(data){
+            var form_data = $("form").serialize();
+            $.post('/home/agent/ajaxsave', form_data, function (out) {
+                if (out.status == 0) {
+                    layer.msg("操作成功",{icon: 1,shade:0.3,time:1000},function () {
+                        window.location.reload()
+                    })
+                } else {
+                    layer.msg(out.message)
+                }
+            }, "json");
+            return false;
+        });
+        form.render();
+    });
+</script>
+{{end}}
