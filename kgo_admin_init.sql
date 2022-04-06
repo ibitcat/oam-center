@@ -28,4 +28,4 @@ INSERT INTO `kgo_role` VALUES (2, '普通管理员', '普通管理员，无菜�
 -- ----------------------------
 -- Records of kgo_user
 -- ----------------------------
-INSERT INTO `kgo_user` VALUES (1, 1, 'admin', 'admin', '4e391f7a8670cce46557dee39e734594', '13829757007', 'domicat@qq.com', '58QM', 1548669685, '192.168.2.34', 1, 0, 0, 0, 1548146771);
+INSERT INTO `kgo_user` VALUES (1, 1, 'admin', 'admin', '4e391f7a8670cce46557dee39e734594', '13866668888', 'xxx@qq.com', '58QM', 1548669685, '192.168.2.34', 1, 0, 0, 0, 1548146771);
