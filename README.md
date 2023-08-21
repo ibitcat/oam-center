@@ -19,6 +19,7 @@ mysqldiff -u root -p 123456 -d kgo_admin -f kgo_admin.sql
 ```
 mysql -uroot -p123456 kgo_admin < kgo_admin_init.sql
 ```
+>管理员账号：admin，密码：123456
 
 ## 运行
 
